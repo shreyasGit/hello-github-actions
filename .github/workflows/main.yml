@@ -3,7 +3,7 @@ on: push
 jobs:
   build:
     name: Hello world action
-    runs-on: self-hosted
+    runs-on: sinsde-cloud
     steps:
       - uses: actions/checkout@v1
       
