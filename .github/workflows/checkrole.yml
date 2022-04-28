@@ -1,0 +1,44 @@
+name: Build-Push Runner Image
+
+on:
+  push:
+    paths:
+      -  'runner/**'
+    branches: main
+  pull_request:
+    branches: main
+    
+permissions:
+  packages: write
+  contents: read
+  id-token: write
+env:
+  IMAGE_NAME: githubrunner
+  REPO_URL: 952478859445.dkr.ecr.us-east-1.amazonaws.com
+  REPO_NAME: mkt-devops/mkt-github-runner
+  
+jobs:
+
+  build:
+
+    runs-on: k8s-runner
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: arn:aws:iam::952478859445:role/github-actions-assumed-role-ecr-eks
+        aws-region: us-east-1
+        role-session-name: githubaction@hello-github-actions
+    - name: Build Runner Image
+      run: |
+        docker build -t githubrunner:githubrunner runner/
+        echo $REPO_URL/$REPO_NAME:$IMAGE_NAME$GITHUB_SHA
+        docker tag githubrunner:githubrunner $REPO_URL/$REPO_NAME:$IMAGE_NAME$GITHUB_SHA
+        docker images
+    - name: Push Runner Image
+      run: |
+        echo $REPO_URL/$REPO_NAME:$IMAGE_NAME$GITHUB_SHA
+        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $REPO_URL
+        docker push $REPO_URL/$REPO_NAME:$IMAGE_NAME$GITHUB_SHA
